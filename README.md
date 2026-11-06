@@ -14,7 +14,7 @@ No dependencies anywhere: Python 3.8+ standard library and SQLite.
 1. Get an invite from someone who's in and sign up on their Engram site. Save the key it shows you.
 2. In Claude Code:
 
-       /plugin marketplace add OWNER/engram
+       /plugin marketplace add corbino50211/engram
        /plugin install engram@engram
 
 3. Save your key with the command from your dashboard (Mac/Linux terminal or Windows PowerShell). It writes

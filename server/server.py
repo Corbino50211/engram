@@ -16,7 +16,7 @@ from urllib.parse import parse_qs, urlparse
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB = os.environ.get("ENGRAM_DB", os.path.join(HERE, "engram.db"))
 INVITES_PER_USER = int(os.environ.get("ENGRAM_INVITES", "3"))
-REPO = os.environ.get("ENGRAM_REPO", "your-github-name/engram")
+REPO = os.environ.get("ENGRAM_REPO", "corbino50211/engram")
 PAGE = os.path.join(HERE, "site", "index.html")
 CERT = os.environ.get("ENGRAM_CERT", os.path.join(HERE, "origin.pem"))
 KEY = os.environ.get("ENGRAM_KEY", os.path.join(HERE, "origin.key"))
