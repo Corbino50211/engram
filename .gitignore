@@ -1,0 +1,8 @@
+*.db
+*.db-*
+__pycache__/
+origin.pem
+origin.key
+*.zip
+*.txt
+.engram.json

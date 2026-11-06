@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engram: long-term memory for Claude Code</title>
+<style>
+  :root {
+    --slide: #fbf7f9; --hema: #2a2059; --eosin: #c23a74; --eosin-ink: #a92f63;
+    --lilac: #ece6f5; --cell: #f2d4e2; --muted: #625b80;
+    --sans: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box }
+  [hidden] { display: none !important }
+  body { margin: 0; background: var(--slide); color: var(--hema); font: 17px/1.6 var(--sans) }
+  main { max-width: 68rem; margin: 0 auto; padding: 0 1.5rem 4rem }
+  h1, h2 { line-height: 1.15; margin: 0 0 .5rem }
+  h2 { font-size: 1.3rem; font-weight: 700 }
+  p { max-width: 38em; margin: 0 0 1rem }
+  a { color: var(--eosin-ink) }
+  :focus-visible { outline: 3px solid var(--eosin); outline-offset: 2px }
+
+  .hero { padding-top: 2rem }
+  #field { display: block; width: 100%; height: auto }
+  .cell { fill: var(--cell) }
+  .dendrite { stroke: var(--lilac); stroke-width: 1.5 }
+  .trace { fill: none; stroke: var(--eosin); stroke-width: 2.5; stroke-linejoin: round;
+           stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.8s ease-in-out .3s forwards }
+  .lit { animation: fire .5s ease-out forwards; animation-delay: calc(.3s + var(--t) * 1.8s) }
+  @keyframes draw { to { stroke-dashoffset: 0 } }
+  @keyframes fire { to { fill: var(--eosin) } }
+  @media (prefers-reduced-motion: reduce) {
+    .trace { animation: none; stroke-dashoffset: 0 }
+    .lit { animation: none; fill: var(--eosin) }
+  }
+  h1 { font-size: clamp(4.5rem, 16vw, 11rem); font-weight: 800; letter-spacing: -.055em; margin: -.3em 0 .2em }
+  .lede { font-size: 1.3rem; line-height: 1.5; max-width: 30em; margin-bottom: 1.5rem }
+
+  .timeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin: 4.5rem 0;
+              padding-top: 1.5rem; border-top: 2px solid var(--hema) }
+  .timeline div { position: relative }
+  .timeline div::before { content: ""; position: absolute; top: calc(-1.5rem - 8.5px); left: 0;
+                          width: 15px; height: 15px; border-radius: 50%; background: var(--hema) }
+  .timeline p { color: var(--muted) }
+
+  .doors { display: grid; grid-template-columns: 3fr 2fr; gap: 1.5rem; align-items: start }
+  .panel { background: var(--lilac); border-radius: 18px; padding: 1.75rem }
+  .quiet { background: none; border: 2px solid var(--lilac) }
+  label { display: block; font-weight: 600; margin-bottom: 1rem }
+  input, select { display: block; width: 100%; margin-top: .35rem; padding: .6rem .8rem; font: inherit; color: inherit;
+                  background: #fff; border: 2px solid #cfc6e3; border-radius: 10px }
+  button, .button { display: inline-block; padding: .65rem 1.4rem; font: inherit; font-weight: 600; color: #fff;
+                    background: var(--hema); border: 0; border-radius: 999px; cursor: pointer; text-decoration: none }
+  button:hover, .button:hover { background: var(--eosin-ink) }
+  button.link { padding: 0; color: var(--eosin-ink); background: none; border-radius: 0; font-weight: 500; text-decoration: underline }
+  .error { color: var(--eosin-ink); font-weight: 600; margin: .75rem 0 0 }
+  .error:empty { display: none }
+  pre, .key { display: block; margin: .4rem 0 .6rem; padding: .75rem 1rem; font: .9rem/1.5 var(--mono); color: #f4eefc;
+              background: var(--hema); border-radius: 10px; white-space: pre-wrap; word-break: break-all }
+  #welcome .key { margin-bottom: 1rem }
+  footer { margin-top: 4rem; color: var(--muted) }
+
+  .bar { display: flex; align-items: baseline; gap: 1.25rem; padding: 1.5rem 0; margin-bottom: 2.5rem; border-bottom: 2px solid var(--hema) }
+  .mark { margin-right: auto; font-size: 1.9rem; font-weight: 800; letter-spacing: -.05em }
+  #app section { margin-bottom: 3.5rem }
+  .steps { padding-left: 1.25rem; margin: 0 }
+  .steps li { margin-bottom: .9rem }
+  .searchbar { display: grid; grid-template-columns: 1fr 14rem; gap: .75rem; margin-bottom: 1rem }
+  .searchbar input, .searchbar select { margin: 0 }
+  .memories { list-style: none; padding: 0; margin: 0 }
+  .memories li { padding: .9rem 0 .9rem 1.25rem; border-left: 3px solid var(--lilac) }
+  .memories li.summary { border-left-color: var(--eosin) }
+  .memories .meta { display: flex; gap: 1rem; font-size: .9rem; color: var(--muted) }
+  .memories .meta span { margin-right: auto }
+  .memories p { margin: .25rem 0 0; max-width: 46em; white-space: pre-wrap; overflow-wrap: anywhere }
+  .memories li.tool p { font: .88rem/1.5 var(--mono) }
+  .invites { list-style: none; padding: 0; margin: 1rem 0 0 }
+  .invites li { display: flex; gap: 1.25rem; align-items: baseline; padding: .55rem 0; border-bottom: 1px solid var(--lilac) }
+  .invites code { font-family: var(--mono) }
+  .muted { color: var(--muted) }
+
+  @media (max-width: 720px) {
+    .doors, .searchbar { grid-template-columns: 1fr }
+    .timeline { grid-template-columns: 1fr; padding: 0 0 0 1.5rem; border-top: 0; border-left: 2px solid var(--hema) }
+    .timeline div::before { top: .45rem; left: calc(-1.5rem - 8.5px) }
+  }
+</style>
+</head>
+<body>
+
+<main id="landing">
+  <header class="hero">
+    <svg id="field" viewBox="0 0 1000 300" aria-hidden="true"></svg>
+    <h1>engram</h1>
+    <p class="lede">Claude Code forgets everything when a session ends. Engram keeps a short record of what you did and hands it back the next time you open the project.</p>
+    <a class="button" href="#join">I have an invite</a>
+  </header>
+
+  <section class="timeline" aria-label="How it works">
+    <div><h2>While you work</h2><p>Engram notes your prompts, the files Claude edits and the commands it runs. Anything that looks like a password or API key is blanked out before it leaves your machine.</p></div>
+    <div><h2>When the session ends</h2><p>Claude writes itself a few lines on what changed, what was decided and what's left to do. This runs on your own Claude plan.</p></div>
+    <div><h2>Next time</h2><p>A new session in that project starts with those notes. Ask Claude to search your memory and it can dig up older ones from any project.</p></div>
+  </section>
+
+  <section class="doors">
+    <form id="join" class="panel">
+      <h2>Join with an invite</h2>
+      <p>Engram is free and invite only. Ask someone who's already in for a code.</p>
+      <label>Invite code <input name="code" required autocomplete="off" spellcheck="false"></label>
+      <label>Pick a name <input name="name" required pattern="[A-Za-z0-9_.\-]{2,32}" title="2-32 letters, numbers, dots, dashes or underscores" autocomplete="username"></label>
+      <button>Join Engram</button>
+      <p class="error" role="alert"></p>
+    </form>
+    <form id="signin" class="panel quiet">
+      <h2>Already joined?</h2>
+      <label>Your key <input name="token" type="password" required autocomplete="current-password"></label>
+      <button>Sign in</button>
+      <p class="error" role="alert"></p>
+    </form>
+  </section>
+
+  <section id="welcome" class="panel" hidden>
+    <h2>You're in, <span id="newname"></span></h2>
+    <p>This is your key. It signs you in here and connects Claude Code. Save it in a password manager now: it's only shown once, and a lost key can't be recovered.</p>
+    <code id="newkey" class="key"></code>
+    <button type="button" id="copykey">Copy key</button>
+    <button type="button" id="enter">Open dashboard</button>
+  </section>
+
+  <footer>No paid tier. The summaries are written by your own Claude Code, so there's nothing to bill.</footer>
+</main>
+
+<main id="app" hidden>
+  <header class="bar">
+    <span class="mark">engram</span>
+    <span id="who"></span>
+    <button type="button" id="signout" class="link">Sign out</button>
+  </header>
+
+  <section class="panel">
+    <h2>Connect Claude Code</h2>
+    <ol class="steps">
+      <li>In Claude Code, add the plugin source:<pre id="step1"></pre></li>
+      <li>Install the plugin:<pre>/plugin install engram@engram</pre></li>
+      <li>Save your key where the plugin can find it. Mac or Linux terminal:<pre id="step3"></pre>Windows PowerShell:<pre id="step3win"></pre></li>
+      <li>Restart Claude Code. Memory starts with your next session.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Memory</h2>
+    <form id="search" class="searchbar" role="search">
+      <input name="q" type="search" placeholder="Search memory" aria-label="Search memory">
+      <select name="project" aria-label="Project"></select>
+    </form>
+    <p id="empty" class="muted" hidden></p>
+    <ol id="memories" class="memories"></ol>
+  </section>
+
+  <section>
+    <h2>Invites</h2>
+    <p id="invites-left"></p>
+    <button type="button" id="mint">Create invite</button>
+    <p class="error" role="alert" id="mint-error"></p>
+    <ul id="invites" class="invites"></ul>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+const KIND = {summary: 'Session summary', prompt: 'You asked', tool: 'Claude did'};
+let key = localStorage.getItem('engram-key');
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {...opts, headers: {'Content-Type': 'application/json', ...(key ? {Authorization: 'Bearer ' + key} : {})}});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || `Request failed (${res.status})`), {status: res.status});
+  return data;
+}
+
+function copyButton(text, label) {
+  const b = el('button', {type: 'button', className: 'link', textContent: label});
+  b.onclick = async () => { await navigator.clipboard.writeText(text); b.textContent = 'Copied'; setTimeout(() => b.textContent = label, 1500); };
+  return b;
+}
+
+function onSubmit(form, fn) {
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const err = form.querySelector('.error');
+    err.textContent = '';
+    try { await fn(Object.fromEntries(new FormData(form))); } catch (x) { err.textContent = x.message; }
+  });
+}
+
+onSubmit($('#join'), async ({code, name}) => {
+  const r = await api('/api/signup', {method: 'POST', body: JSON.stringify({code: code.trim(), name: name.trim()})});
+  key = r.token;
+  localStorage.setItem('engram-key', key);
+  $('#newname').textContent = r.name;
+  $('#newkey').textContent = r.token;
+  $('.doors').hidden = true;
+  $('#welcome').hidden = false;
+  $('#welcome').scrollIntoView({behavior: 'smooth'});
+});
+
+onSubmit($('#signin'), async ({token}) => {
+  key = token.trim();
+  try { await openApp(); } catch (x) { key = null; throw x; }
+  localStorage.setItem('engram-key', key);
+});
+
+$('#copykey').onclick = () => navigator.clipboard.writeText(key).then(() => $('#copykey').textContent = 'Copied');
+$('#enter').onclick = () => openApp();
+$('#signout').onclick = () => { localStorage.removeItem('engram-key'); location.href = '/'; };
+
+async function openApp() {
+  const me = await api('/api/me');
+  $('#landing').hidden = true;
+  $('#app').hidden = false;
+  window.scrollTo(0, 0);
+  $('#who').textContent = me.name;
+  $('#step1').textContent = `/plugin marketplace add ${me.repo}`;
+  const config = JSON.stringify({url: location.origin, token: key});
+  $('#step3').textContent = `umask 077 && echo '${config}' > ~/.engram.json`;
+  $('#step3win').textContent = `Set-Content -Path "$HOME\\.engram.json" -Encoding ascii -Value '${config}'`;
+  const select = $('#search select'), current = select.value;
+  select.replaceChildren(el('option', {value: '', textContent: 'All projects'}), ...me.projects.map(p => el('option', {value: p, textContent: p})));
+  select.value = me.projects.includes(current) ? current : '';
+  const left = me.invites_left;
+  $('#invites-left').textContent = left ? `You can invite ${left} more ${left === 1 ? 'person' : 'people'}.` : "You've used all your invites.";
+  $('#mint').hidden = !left;
+  $('#invites').replaceChildren(...me.invites.map(i => el('li', {},
+    el('code', {textContent: i.code}),
+    i.used_by ? el('span', {className: 'muted', textContent: `Used by ${i.used_by}`})
+              : copyButton(`${location.origin}/?invite=${encodeURIComponent(i.code)}`, 'Copy invite link'))));
+  await loadMemories();
+}
+
+async function loadMemories() {
+  const f = new FormData($('#search'));
+  const list = await api('/api/memories?' + new URLSearchParams({q: f.get('q'), project: f.get('project'), limit: 100}));
+  $('#empty').hidden = list.length > 0;
+  $('#empty').textContent = f.get('q') || f.get('project') ? 'No memories match that search.'
+    : 'Nothing here yet. Connect Claude Code above, then finish a session.';
+  $('#memories').replaceChildren(...list.map(m => {
+    const del = el('button', {type: 'button', className: 'link', textContent: 'Delete'});
+    const li = el('li', {className: m.kind},
+      el('div', {className: 'meta'},
+        el('span', {textContent: `${KIND[m.kind] || m.kind} in ${m.project}`}),
+        el('time', {textContent: new Date(m.created * 1000).toLocaleString([], {dateStyle: 'medium', timeStyle: 'short'})}),
+        del),
+      el('p', {textContent: m.text}));
+    del.onclick = () => api('/api/memories/' + m.id, {method: 'DELETE'}).then(() => li.remove(), () => del.textContent = 'Delete failed');
+    return li;
+  }));
+}
+
+let typing;
+$('#search').addEventListener('submit', e => { e.preventDefault(); loadMemories(); });
+$('#search [name=q]').addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(loadMemories, 250); });
+$('#search select').addEventListener('change', loadMemories);
+$('#mint').onclick = () => { $('#mint-error').textContent = ''; api('/api/invites', {method: 'POST'}).then(openApp, x => $('#mint-error').textContent = x.message); };
+
+// Hero: a field of cells, and the few that fire together to hold a memory.
+(function field() {
+  const svg = $('#field'), NS = 'http://www.w3.org/2000/svg';
+  let seed = 11;
+  const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  const add = (tag, attrs) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return svg.appendChild(n); };
+  const cells = Array.from({length: 72}, () => ({x: 15 + rnd() * 970, y: 15 + rnd() * 270, r: 3 + rnd() * 7}));
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  for (const c of cells) {
+    const near = cells.filter(o => o !== c).sort((a, b) => dist(c, a) - dist(c, b))[0];
+    add('line', {class: 'dendrite', x1: c.x, y1: c.y, x2: near.x, y2: near.y});
+  }
+  const trace = cells.filter((_, i) => i % 9 === 0).sort((a, b) => a.x - b.x);
+  add('path', {class: 'trace', pathLength: 1, d: 'M' + trace.map(c => `${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(' L')});
+  const along = new Map();  // how far along the trace each firing cell sits, so it lights as the line reaches it
+  let run = 0;
+  trace.forEach((c, i) => { if (i) run += dist(c, trace[i - 1]); along.set(c, run); });
+  for (const c of cells) {
+    const n = add('circle', {cx: c.x.toFixed(1), cy: c.y.toFixed(1), r: c.r.toFixed(1), class: along.has(c) ? 'cell lit' : 'cell'});
+    if (along.has(c)) n.style.setProperty('--t', (along.get(c) / run).toFixed(3));
+  }
+})();
+
+const invite = new URLSearchParams(location.search).get('invite');
+if (invite) $('#join [name=code]').value = invite;
+if (key) openApp().catch(x => { if (x.status === 401) { localStorage.removeItem('engram-key'); key = null; } });
+</script>
+</body>
+</html>

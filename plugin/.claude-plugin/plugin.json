@@ -1,0 +1,5 @@
+{
+  "name": "engram",
+  "version": "0.2.0",
+  "description": "Free, invite-only long-term memory for Claude Code: remembers what happened in each project and brings it back next session."
+}

@@ -1,0 +1,11 @@
+{
+  "name": "engram",
+  "owner": { "name": "Engram" },
+  "plugins": [
+    {
+      "name": "engram",
+      "source": "./plugin",
+      "description": "Free, invite-only long-term memory for Claude Code."
+    }
+  ]
+}
